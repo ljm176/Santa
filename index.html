@@ -45,16 +45,16 @@
 
     <script>
         const tomtes = [
-            { name: "Love Heart Tomte", clue: "Look for the romantic tomte carrying a love heart!" },
-            { name: "Mushroom Tumble Tomte", clue: "Find the clumsy tomte who's fallen over in the mushrooms!" },
-            { name: "Acorn Cap Tomte", clue: "Spot the woodland tomte with a hat made of an acorn!" },
-            { name: "Stripy Hat Tomte", clue: "Search for the stylish tomte in a red and grey striped hat!" },
-            { name: "Spotty Hat Tomte", clue: "Discover the tomte with a spotty red and white hat!" },
-            { name: "Grot Eating Tomte", clue: "Find the hungry tomte enjoying a bowl of grot!" },
-            { name: "Tall Hat Tomte", clue: "Look for the tomte with the tall red hat!" },
-            { name: "Green Pants Tomte", clue: "Spot the tomte with green pants!" },
-            { name: "Grey Candy Cane Tomte", clue: "Find the tomte with a grey hat and matching grey candy cane!" },
-            { name: "Blue Scarf Tomte", clue: "Seek the cozy tomte all wrapped up in a blue and white scarf!" }
+            { name: "Love Heart Tomte", clue: "Look for the romantic tomte carrying a love heart!", extraHint: "🚪" },
+            { name: "Mushroom Tumble Tomte", clue: "Find the clumsy tomte who's fallen over in the mushrooms!", extraHint: "🐵🎅" },
+            { name: "Acorn Cap Tomte", clue: "Spot the woodland tomte with a hat made of an acorn!", extraHint: "🪴🪟" },
+            { name: "Stripy Hat Tomte", clue: "Search for the stylish tomte in a red and grey striped hat!", extraHint: "🪴🪟" },
+            { name: "Spotty Hat Tomte", clue: "Discover the tomte with a spotty red and white hat!", extraHint: "⛪" },
+            { name: "Grot Eating Tomte", clue: "Find the hungry tomte enjoying a bowl of grot!", extraHint: "📚👨‍🍳" },
+            { name: "Tall Hat Tomte", clue: "Look for the tomte with the tall red hat!", extraHint: "🎹" },
+            { name: "Green Pants Tomte", clue: "Spot the tomte with green pants!", extraHint: "🧥🏺" },
+            { name: "Grey Candy Cane Tomte", clue: "Find the tomte with a grey hat and matching grey candy cane!", extraHint: "🍸🍾" },
+            { name: "Blue Scarf Tomte", clue: "Seek the cozy tomte all wrapped up in a blue and white scarf!", extraHint: "🚪🏠" }
         ];
 
         let gameStarted = false;
@@ -62,9 +62,23 @@
         let foundTomtes = [];
         let skippedTomtes = [];
         let showHint = false;
+        let showExtraHint = false;
 
         function startGame() {
             gameStarted = true;
+            render();
+        }
+
+        function resetQuiz() {
+            currentClue = 0;
+            foundTomtes = [];
+            skippedTomtes = [];
+            showHint = false;
+            showExtraHint = false;
+            gameStarted = false;
+            updateProgress();
+            updateFoundList();
+            updateSkippedList();
             render();
         }
 
@@ -102,9 +116,19 @@
             render();
         }
 
+        function toggleExtraHint() {
+            showExtraHint = !showExtraHint;
+            render();
+        }
+
         function markFound() {
+            // Don't allow marking as found if already found
+            if (foundTomtes.includes(currentClue)) {
+                return;
+            }
             foundTomtes.push(currentClue);
             showHint = false;
+            showExtraHint = false;
             moveToNextClue();
             updateProgress();
             updateFoundList();
@@ -117,14 +141,43 @@
                 skippedTomtes.push(currentClue);
             }
             showHint = false;
+            showExtraHint = false;
             moveToNextClue();
             updateSkippedList();
             render();
         }
 
+        function goBack() {
+            // Find the previous clue that hasn't been found
+            let prevClue = currentClue - 1;
+            while (prevClue >= 0 && foundTomtes.includes(prevClue)) {
+                prevClue--;
+            }
+            
+            // If we can't go back in the main sequence, check skipped ones
+            if (prevClue < 0 && skippedTomtes.length > 0) {
+                const lastSkipped = skippedTomtes.filter(idx => !foundTomtes.includes(idx)).pop();
+                if (lastSkipped !== undefined) {
+                    currentClue = lastSkipped;
+                    showHint = false;
+                    showExtraHint = false;
+                    render();
+                    return;
+                }
+            }
+            
+            if (prevClue >= 0) {
+                currentClue = prevClue;
+                showHint = false;
+                showExtraHint = false;
+                render();
+            }
+        }
+
         function goToSkipped(index) {
             currentClue = index;
             showHint = false;
+            showExtraHint = false;
             render();
         }
 
@@ -219,7 +272,10 @@
                         <div class="text-6xl mb-4">🎉</div>
                         <h2 class="text-3xl font-bold text-green-600 mb-4">Congratulations!</h2>
                         <p class="text-xl text-gray-700 mb-6">You found all ${tomtes.length} tomtes!</p>
-                        <div class="text-5xl">🎄✨🎅✨🎄</div>
+                        <div class="text-5xl mb-8">🎄✨🎅✨🎄</div>
+                        <button onclick="resetQuiz()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                            🔄 Reset Hunt
+                        </button>
                     </div>
                 `;
             } else if (!showHint) {
@@ -235,6 +291,9 @@
                     </div>
                 `;
             } else {
+                const canGoBack = currentClue > 0 || skippedTomtes.some(idx => !foundTomtes.includes(idx) && idx < currentClue);
+                const alreadyFound = foundTomtes.includes(currentClue);
+                
                 gameContent.innerHTML = `
                     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                         <div class="flex items-center justify-between mb-4">
@@ -244,6 +303,24 @@
                         <div class="bg-green-50 border-2 border-green-300 rounded-lg p-4 mb-4">
                             <p class="text-lg text-gray-800 text-center">${tomtes[currentClue].clue}</p>
                         </div>
+                        ${showExtraHint ? `
+                        <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-4 text-center">
+                            <p class="text-3xl">${tomtes[currentClue].extraHint}</p>
+                        </div>
+                        ` : `
+                        <button onclick="toggleExtraHint()" class="w-full bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg transition-colors text-base mb-4">
+                            💡 Extra Hint
+                        </button>
+                        `}
+                        ${alreadyFound ? `
+                        <div class="w-full bg-gray-300 text-gray-600 font-bold py-4 px-6 rounded-lg text-lg flex items-center justify-center gap-2 mb-3">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Already Found!
+                        </div>
+                        ` : `
                         <button onclick="markFound()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg flex items-center justify-center gap-2 mb-3">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -251,9 +328,17 @@
                             </svg>
                             Found It!
                         </button>
-                        <button onclick="skipClue()" class="w-full bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-lg transition-colors text-base">
-                            Skip for Now ⏭️
-                        </button>
+                        `}
+                        <div class="grid grid-cols-2 gap-3">
+                            ${canGoBack ? `
+                            <button onclick="goBack()" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors text-base">
+                                ⬅️ Back
+                            </button>
+                            ` : '<div></div>'}
+                            <button onclick="skipClue()" class="bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-lg transition-colors text-base">
+                                Skip ⏭️
+                            </button>
+                        </div>
                     </div>
                 `;
             }
